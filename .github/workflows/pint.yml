@@ -1,0 +1,30 @@
+name: Check & fix styling
+
+on:
+  push:
+    paths:
+      - '**.php'
+
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Add HTTP basic auth credentials
+        run: echo '${{ secrets.COMPOSER_AUTH_JSON }}' > $GITHUB_WORKSPACE/auth.json
+
+      - name: Install composer dependencies
+        uses: ramsey/composer-install@v2
+
+      - name: Check code style
+        timeout-minutes: 2
+        run: ./vendor/bin/pint --test --preset laravel

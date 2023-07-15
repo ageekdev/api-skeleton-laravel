@@ -1,0 +1,114 @@
+version: 2.1
+
+defaults: &defaults
+  docker:
+    - image: cimg/php:8.2.4
+  working_directory: ~/repo
+
+test_defaults: &test_defaults
+  docker:
+    - image: cimg/php:8.2.4
+    - image: cimg/postgres:14.0
+      environment:
+        POSTGRES_USER: ageekdev
+        POSTGRES_PASSWORD: ageekdev
+        POSTGRES_DB: testing_db
+  parallelism: 2
+  working_directory: ~/repo
+
+aliases:
+  - &composer-cache
+      v4-composer-cache
+commands:
+  start-project:
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - *composer-cache
+  install-dependencies:
+    steps:
+      - run: composer install -n --prefer-dist
+      - save_cache:
+          key: *composer-cache
+          paths:
+            - ~/.composer/cache
+  safe-install-dependencies:
+    steps:
+      - run: composer install -n --prefer-dist --ignore-platform-req=ext-mongodb --ignore-platform-req=ext-imagick
+      - save_cache:
+          key: *composer-cache
+          paths:
+            - ~/.composer/cache
+  install-php-ext:
+    steps:
+      - run:
+          name: Install PHP Extensions
+          command: |
+            sudo docker-php-ext-install zip bcmath intl
+            sudo docker-php-ext-enable zip bcmath intl
+  install-mysql-driver:
+    steps:
+      - run:
+          name: Install MySQL driver
+          command: |
+            sudo docker-php-ext-configure pdo_mysql --with-pdo-mysql=mysqlnd
+            sudo docker-php-ext-install zip bcmath pdo_mysql
+  install-xdebug:
+    steps:
+      - run:
+          name: Install xdebug
+          command: |
+            sudo pecl install xdebug
+            sudo docker-php-ext-enable xdebug
+
+jobs:
+  pint:
+    <<: *defaults
+    steps:
+      - start-project
+      - safe-install-dependencies
+      - run:
+          name: Pint CS
+          command: ./vendor/bin/pint --test --preset laravel
+  phpstan:
+    <<: *defaults
+    steps:
+      - start-project
+      - safe-install-dependencies
+      - run:
+          name: PHPStan Analyze
+          command: php -d memory_limit=4G vendor/bin/phpstan
+  test:
+    <<: *test_defaults
+    steps:
+      - start-project
+      - install-php-ext
+      - install-dependencies
+
+      - run:
+          name: Copy environment variables
+          command: |
+            cp .env.testing .env
+
+      - run:
+          name: prepare the database
+          command: |
+            php artisan migrate --env=testing --force
+
+      - run:
+          name: Execute tests via PestPHP
+          command: |
+            php artisan test
+
+      - store_test_results:
+          path: tests/_output
+      - store_artifacts:
+          path: tests/_output
+
+workflows:
+  version: 2.1
+  workflow:
+    jobs:
+      - pint
+      - phpstan
