@@ -10,16 +10,10 @@ use Illuminate\Support\ServiceProvider;
 
 class ResponseServiceProvider extends ServiceProvider
 {
-    /**
-     * @return void
-     */
     public function register(): void
     {
     }
 
-    /**
-     * @return void
-     */
     public function boot(): void
     {
         Response::macro('success', function ($data = [], $status = 200, array $headers = [], $options = 0) {
