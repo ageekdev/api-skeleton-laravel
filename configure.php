@@ -91,13 +91,26 @@ function remove_prefix(string $prefix, string $content): string
     return $content;
 }
 
-function remove_composer_deps(array $names): void
+function remove_composer_dev_deps(array $names): void
 {
     $data = json_decode(file_get_contents(__DIR__.'/composer.json'), true);
 
     foreach ($data['require-dev'] as $name => $version) {
         if (in_array($name, $names, true)) {
             unset($data['require-dev'][$name]);
+        }
+    }
+
+    file_put_contents(__DIR__.'/composer.json', json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+}
+
+function remove_composer_deps(array $names): void
+{
+    $data = json_decode(file_get_contents(__DIR__.'/composer.json'), true);
+
+    foreach ($data['require'] as $name => $version) {
+        if (in_array($name, $names, true)) {
+            unset($data['require'][$name]);
         }
     }
 
@@ -111,6 +124,13 @@ function remove_composer_script($scriptName): void
     foreach ($data['scripts'] as $name => $script) {
         if ($scriptName === $name) {
             unset($data['scripts'][$name]);
+            break;
+        }
+    }
+
+    foreach ($data['scripts']['check'] as $key => $script) {
+        if (str_ends_with($script, $scriptName)) {
+            unset($data['scripts']['check'][$key]);
             break;
         }
     }
@@ -173,12 +193,22 @@ $projectSlug = slugify($projectName);
 $projectTitle = title_case($projectName);
 $projectSlugWithoutPrefix = remove_prefix('laravel-', $projectSlug);
 
-$description = ask('Project description', "This is my project {$projectSlug}");
+$description = ask('Project description', "This is my project $projectSlug");
+
+$usePhpStan = confirm('Enable PhpStan?', true);
+$useLaravelPint = confirm('Enable Laravel Pint?', true);
+$useVapor = confirm('Enable Laravel Vapor?', true);
 
 writeln('------');
 writeln("Vendor     : {$vendorName} ({$vendorSlug})");
 writeln("Project    : {$projectSlug} <{$description}>");
 writeln("ProjectTitle  : {$projectTitle}");
+writeln('------');
+
+writeln('Packages & Utilities');
+writeln('Use Laravel/Pint       : '.($useLaravelPint ? 'yes' : 'no'));
+writeln('Use Larastan/PhpStan : '.($usePhpStan ? 'yes' : 'no'));
+writeln('Use Laravel/Vapor : '.($useVapor ? 'yes' : 'no'));
 writeln('------');
 
 writeln('This script will replace the above values in all relevant files in the project directory.');
@@ -228,6 +258,41 @@ $actionFiles = [
 
 foreach ($actionFiles as $actionFile) {
     enable_action($actionFile);
+}
+
+if (! $useLaravelPint) {
+    safeUnlink(__DIR__.'/.github/workflows/pint.yml');
+
+    remove_composer_script('format');
+}
+
+if (! $usePhpStan) {
+    safeUnlink(__DIR__.'/phpstan.neon.dist');
+    safeUnlink(__DIR__.'/phpstan-baseline.neon');
+    safeUnlink(__DIR__.'/.github/workflows/phpstan.yml');
+
+    remove_composer_dev_deps([
+        'larastan/larastan',
+        'pestphp/pest-plugin-laravel',
+        'phpstan/phpstan-phpunit',
+    ]);
+
+    remove_composer_script('analyse');
+    remove_composer_script('analyse-clear');
+}
+
+if (! $useVapor) {
+    safeUnlink(__DIR__.'/.github/workflows/deploy.yml');
+    safeUnlink(__DIR__.'/vapor-ignore.yml');
+    safeUnlink(__DIR__.'/503.json');
+
+    remove_composer_deps([
+        'ageekdev/vapor-http-logger',
+        'genie-fintech/vapor-support',
+        'laravel/vapor-cli',
+        'laravel/vapor-core',
+        'laravel/vapor-ui',
+    ]);
 }
 
 confirm('Execute `composer install` and key generate?') && run('composer install && cp .env.example .env && php artisan key:generate');
