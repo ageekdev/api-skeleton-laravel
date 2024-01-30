@@ -1,26 +1,33 @@
 name: Run tests
 
-on:
-  push:
-    paths:
-      - '**.php'
-      - 'phpunit.xml'
-      - 'composer.json'
-      - 'composer.lock'
+#on:
+#  push:
+#    paths:
+#      - '**.php'
+#      - 'phpunit.xml'
+#      - 'composer.json'
+#      - 'composer.lock'
 
 jobs:
   phpunit:
     name: Run tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out repository code
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, intl, exif
+          ini-values: error_reporting=E_ALL
+          tools: composer:v2
           coverage: none
+
+      - name: Composer & GitHub Authentication
+        run: composer config github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run composer install
         run: composer install -n --prefer-dist

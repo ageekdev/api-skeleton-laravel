@@ -3,20 +3,22 @@ version: '3'
 services:
     laravel.test:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.1
+            context: ./vendor/laravel/sail/runtimes/8.2
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP}'
-        image: sail-8.1/app
+        image: sail-8.2/app
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
             - '${APP_PORT:-80}:80'
+            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
             - '.:/var/www/html'
         networks:
@@ -25,8 +27,9 @@ services:
             - pgsql
             - meilisearch
             - minio
+            - mailpit
     pgsql:
-        image: 'postgres:13'
+        image: 'postgres:15'
         ports:
             - '${FORWARD_DB_PORT:-5432}:5432'
         environment:
@@ -36,6 +39,7 @@ services:
             POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
         volumes:
             - 'sail-pgsql:/var/lib/postgresql/data'
+            - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
         networks:
             - sail
         healthcheck:
@@ -43,12 +47,11 @@ services:
             retries: 3
             timeout: 5s
     meilisearch:
-        image: '${MEILISEARCH_IMAGE:-getmeili/meilisearch}'
-        platform: '${MEILISEARCH_PLATFORM:-linux/amd64}'
+        image: 'getmeili/meilisearch:latest'
         ports:
             - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
         volumes:
-            - 'sail-meilisearch:/data.ms'
+            - 'sail-meilisearch:/meili_data'
         networks:
             - sail
         healthcheck:
@@ -67,7 +70,7 @@ services:
             - 'sail-minio:/data/minio'
         networks:
             - sail
-        command: minio server /data/minio --console-address ":8900"
+        command: 'minio server /data/minio --console-address ":8900"'
         healthcheck:
             test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
             retries: 3

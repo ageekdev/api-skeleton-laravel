@@ -1,7 +1,7 @@
 <h1 align="center">:vendor_name - :project_title</h1>
 <p align="center">
-<a href="https://laravel.com/docs/10.x"><img src="https://img.shields.io/badge/Laravel-10.x-red" alt="Laravel 10"></a>
-<a href="https://www.php.net/releases/8.2/en.php"><img src="https://img.shields.io/badge/php-%5E8.2-blue" alt="PHP 8.2"></a>
+<a href="https://laravel.com/docs/10.x"><img src="https://img.shields.io/badge/Laravel-10.x-red?style=flat-square&logo=Laravel" alt="Laravel 10"></a>
+<a href="https://www.php.net/releases/8.2/en.php"><img src="https://img.shields.io/badge/php-%5E8.2-blue?style=flat-square&logo=php" alt="PHP 8.2"></a>
 </p>
 
 <!--delete-->

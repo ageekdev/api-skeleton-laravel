@@ -128,6 +128,16 @@ function remove_readme_paragraphs(string $file): void
     );
 }
 
+function enable_action(string $file): void
+{
+    $contents = file_get_contents($file);
+
+    file_put_contents(
+        $file,
+        preg_replace('/#*/', '', $contents) ?: $contents
+    );
+}
+
 function safeUnlink(string $filename)
 {
     if (file_exists($filename) && is_file($filename)) {
@@ -208,6 +218,16 @@ foreach ($envFiles as $envFile) {
         ':project_slug_without_prefix' => $projectSlugWithoutPrefix,
         ':project_description' => $description,
     ]);
+}
+
+$actionFiles = [
+    '.github/workflows/phpstan.yml',
+    '.github/workflows/pint.yml',
+    '.github/workflows/run-tests.yml',
+];
+
+foreach ($actionFiles as $actionFile) {
+    enable_action($actionFile);
 }
 
 confirm('Execute `composer install` and key generate?') && run('composer install && cp .env.example .env && php artisan key:generate');

@@ -17,7 +17,7 @@ class CheckApiToken
     public function handle(Request $request, Closure $next, string $app)
     {
         $token = $request->header('x_api_token');
-        if (! $token || ! data_get(config('api-tokens'), $token) || data_get(config('api-tokens'), $token) != $app) {
+        if (! $token || ! data_get(config('api-tokens'), $token) || data_get(config('api-tokens'), $token) !== $app) {
             return Response::error(
                 ['message' => 'Invalid Api Token!'],
                 Http::HTTP_UNAUTHORIZED

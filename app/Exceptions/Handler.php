@@ -16,7 +16,7 @@ use Throwable;
 class Handler extends ExceptionHandler
 {
     /**
-     * A list of the inputs that are never flashed to the session on validation exceptions.
+     * The list of the inputs that are never flashed to the session on validation exceptions.
      *
      * @var array<int, string>
      */
@@ -39,41 +39,34 @@ class Handler extends ExceptionHandler
     public function render($request, Throwable $e)
     {
         if ($request->wantsJson() || $request->is('api/*')) {
-
-            switch (get_class($e)) {
+            switch ($e::class) {
                 case ModelNotFoundException::class:
-
                     return Response::error([
                         'message' => class_basename($e->getModel()).' Not Found',
                     ], Http::HTTP_NOT_FOUND);
 
                 case NotFoundHttpException::class:
-
                     return Response::error([
                         'message' => 'Requested url not found',
                     ], Http::HTTP_NOT_FOUND);
 
                 case ValidationException::class:
-
                     return Response::error([
                         'message' => $e->getMessage(),
                         'errors' => $e->errors(),
                     ], $e->status);
 
                 case AuthorizationException::class:
-
                     return Response::error([
                         'message' => $e->getMessage(),
                     ], Http::HTTP_FORBIDDEN);
 
                 case AuthenticationException::class:
-
                     return Response::error([
                         'message' => $e->getMessage(),
                     ], Http::HTTP_UNAUTHORIZED);
 
                 case InvalidSignatureException::class:
-
                     if ($request->routeIs('verification.verify')) {
                         return Response::error([
                             'message' => 'Verification link expired',
@@ -85,7 +78,6 @@ class Handler extends ExceptionHandler
                     ], $e->getStatusCode());
 
                 default:
-
                     $statusCode = (int) $e->getCode();
 
                     if ($this->validStatusCode($statusCode)) {
@@ -93,7 +85,6 @@ class Handler extends ExceptionHandler
                             'message' => $e->getMessage(),
                         ], $e->getCode());
                     }
-
             }
         }
 
